@@ -1,4 +1,3 @@
-from telebot import types 
 from db_functions import *
 from config import *
 

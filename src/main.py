@@ -1,5 +1,3 @@
-import telebot
-from telebot import types 
 from datetime import datetime
 from db_functions import *
 from config import *

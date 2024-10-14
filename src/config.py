@@ -1,13 +1,10 @@
 import telebot
 from telebot import types
 from datetime import datetime
-#db_name = 'DATABASE_NEMA'
-#dmin_key = 'ADMIN_KEY'
-#token = "TELEGRAM_BOT_TOKEN"
-db_name = 'mponn_it_test'
-admin_key = 'Qwerty!'
+db_name = 'DATABASE_NAME'
+dmin_key = 'ADMIN_KEY'
 suadmin_key = 'DONT_WORK_NOW'
-token = "7734632816:AAFdTBHB2BkTpsh4l9zd7vchvLJCvrBWqF4"
+token = "TELEGRAM_BOT_TOKEN"
 user_status = {}
 bot = telebot.TeleBot(token)
 

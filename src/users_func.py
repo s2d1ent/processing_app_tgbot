@@ -1,7 +1,7 @@
 from db_functions import *
 from config import *
 
-def get_user_type(chat_id):
+def is_admin(chat_id):
     user_type = -1
     # 0 - user
     # 1 - admin
@@ -42,7 +42,7 @@ def cancel_question(chat_id):
         for row in fetch:
             item = types.InlineKeyboardButton(f"Заявка №{row[0]} - {row[1]}", callback_data=f'{chat_id}_cancel_id:{row[0]}')
             markup.add(item)
-        bot.send_message(chat_id,"какая конкретно заявка тебя интересует ?",reply_markup=markup)
+        bot.send_message(chat_id,"Какую открытую заявку вы хотите отменить ?",reply_markup=markup)
     else:
         send_message(chat_id, f"Нет открытых заявок")
 
@@ -64,16 +64,17 @@ def question_alert(question_id, alert):
             return
         else:
             if alert == 0:
-                # send to adnib what user cancel the question
-                send_message(row[1], f"*Пользователь* {row[2]} отменил заявку *№{question_id}* от *{row[0]}*\n*Тема:* {row[3]}\n*Описание:* \n{row[4]}")
+                # Сообщение администратору что пользователь отменил заявку
+                if row[1] != None:
+                    send_message(row[1], f"*Пользователь* {row[2]} отменил заявку *№{question_id}* от *{row[0]}*\n*Тема:* {row[3]}\n*Описание:* \n{row[4]}")
             elif alert == 1:
-                # send to creater what admin take the question
+                # Сообщение пользователю кто из администраторов принял заявку
                 send_message(row[1], f"*Пользователь* {row[2]} принял заявку *№{question_id}* от *{row[0]}*\n*Тема:* {row[3]}")
             elif alert == 2:
-                # send to creater what admin cancel the question
+                # Сообщение пользователю что администратор отклонил заявку
                 send_message(row[1], f"*Пользователь* {row[2]} отменил заявку *№{question_id}* от *{row[0]}*\n*Тема:*{row[3]}\n*Комментарий:* \n{row[4]}")
             elif alert == 3:
-                # send to creater what admin cancel the question
+                # Сообщение пользователю что администратор завершил заявку
                 send_message(row[1], f"*Пользователь* {row[2]} выполнил заявку *№{question_id}* от *{row[0]}*\n*Тема:*{row[3]}\n*Комментарий:* \n{row[4]}")
 
 def questions_view(chat_id):

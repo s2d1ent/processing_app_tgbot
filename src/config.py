@@ -1,11 +1,16 @@
 import telebot
 from telebot import types
 from datetime import datetime
-db_name = 'DATABASE_NAME'
-dmin_key = 'ADMIN_KEY'
-suadmin_key = 'DONT_WORK_NOW'
-token = "TELEGRAM_BOT_TOKEN"
+#db_name = 'DATABASE_NAME'
+#dmin_key = 'ADMIN_KEY'
+#suadmin_key = 'DONT_WORK_NOW'
+#token = "TELEGRAM_BOT_TOKEN"
+db_name = 'mponn_it_test'
+admin_key = 'Qwerty'
+token = "7734632816:AAFdTBHB2BkTpsh4l9zd7vchvLJCvrBWqF4"
+buffer = {}
 user_status = {}
+user_questions_buf = {}
 bot = telebot.TeleBot(token)
 
 emojis = {
@@ -19,3 +24,19 @@ emojis = {
     'readdr'    : 'U+1F503',
     'new'       : 'U+1F525'
 }
+
+class UserBuffer:
+    def __init__(self, chat_id):
+        self.id = chat_id
+        self.question = QuestionBuffer()
+        self.status = ''
+        self.keyboard = ''
+        self.variables = {}
+
+
+class QuestionBuffer:
+    def __init__(self):
+        self.id = 0
+        self.thema = ''
+        self.description = ''
+        self.files = []

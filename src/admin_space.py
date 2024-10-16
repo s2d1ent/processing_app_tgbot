@@ -67,31 +67,31 @@ def inline_handler_admin(call, chat_id):
 def message_handler_admin(message, chat_id):
     try:
 # Обработка заявок
-        if str(chat_id) in str(user_status.keys()):
+        if str(chat_id) in str(buffer.keys()):
 # Работа с заявками в "Мои заявки"
 # Регистрация администратора
-            if user_status[chat_id] == 'wait_admin_name_insert':
-                user_status[chat_id] = ''
+            if buffer[chat_id].status == 'wait_admin_name_insert':
+                buffer[chat_id].status = ''
                 db_execute(f"UPDATE Users SET name='{message.text}' WHERE tg_id='{chat_id}'")
                 if is_registered(chat_id) == True:
-                    user_status[chat_id] = ''
+                    buffer[chat_id].status = ''
                     send_message(message.chat.id, 'Регистрация администратора окончена. Напишите `/start` для продолжения.  Хорошего рабочего дня!')
                     return
                 else:
                     send_message(message.chat.id, '*Ошибка регистрации*. Сообщите разработчику о неполадке.')
 # Отмена заявки
-            if user_status[chat_id] == 'wait_admin_cancel_request':
+            if buffer[chat_id].status == 'wait_admin_cancel_request':
                 id = user_status[f"{chat_id}_cancel_question_id"]
-                user_status[chat_id] = ''
+                buffer[chat_id].status = ''
                 text = message.text
                 fetch = db_execute_fetch(f"UPDATE Questions SET status=2, receiver={chat_id}, receiverComment='{text}' WHERE id={id};")
                 question_alert(id, 2)
                 send_message(chat_id, f"***Заявка №{id} отказана***")
                 return
 # Закрытие заявки
-            if user_status[chat_id] == 'wait_admin_done_request':
+            if buffer[chat_id].status == 'wait_admin_done_request':
                 id = user_status[f"{chat_id}_done_question_id"]
-                user_status[chat_id] = ''
+                buffer[chat_id].status = ''
                 text = message.text
                 fetch = db_execute_fetch(f"UPDATE Questions SET status=4, receiver='{chat_id}, receiverComment=''{text}' WHERE id={id};")
                 question_alert(id, 3)

@@ -32,35 +32,49 @@ def db_execute(command):
     except Exception as e:
         print(repr(e))
     finally:
-        db_close()
+        cursor.close()
+        db_conn.close()
+        is_open = False
 
 def db_execute_fetch(command):
+    db_conn = None
+    cursor = None
     try:
-        db_start()
+        db_conn = sqlite3.connect(db_name)
+        cursor = db_conn.cursor()
         cursor.execute(command)
         db_conn.commit()
         return cursor.fetchall()
     except Exception as e:
         print(repr(e))
     finally:
-        db_close()
+        cursor.close()
+        db_conn.close()
 
 def is_registered(chat_id):
+    db_conn = None
+    cursor = None
     try:
-        db_start()
-        if is_open == True:
-            cursor.execute(f"select * from Users where tg_id='{chat_id}'")
-            db_conn.commit()
-            request = cursor.fetchall()
-            if len(request) != 0:
-                return True
-        else:
-            print('Connection is close!')
+        db_conn = sqlite3.connect(db_name)
+        cursor = db_conn.cursor()
+        is_open = True
+        cursor.execute(f"select * from Users where tg_id='{chat_id}'")
+        db_conn.commit()
+        request = cursor.fetchall()
+        if len(request) != 0:
+            return True
         return False
     except Exception as e:
         print('is_registered '+repr(e))
     finally:
-        db_close()
+        cursor.close()
+        db_conn.close()
+        
+def clone_buffer():
+    None
+
+def push_buffer():
+    None
 
 def is_exist_question(date, chat_id, thema):
     fetch = db_execute_fetch(f"SELECT * FROM Questions WHERE date='{date}' and creater='{chat_id}' and thema='{thema}'")

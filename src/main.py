@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 from db_functions import *
 from config import *
 from users_func import *
@@ -12,6 +13,8 @@ def cmd_start(message):
         chat_id = message.chat.id
         user_exist = is_registered(message.chat.id)
         if user_exist == True:
+            if str(chat_id) not in str(buffer.keys()):
+                buffer[chat_id] = UserBuffer(chat_id)
             start_keyboard(chat_id)
         else:
             markup = types.InlineKeyboardMarkup(row_width=2)
@@ -86,17 +89,30 @@ def message_handler(message):
 # TODO
 @bot.message_handler(content_types=['photo'])
 def photo_handler(message):
-    #for photo in message.photo:
-    #    bot.send_photo(message.chat.id, photo.file_id)
-    #    break
-    None
-
+    try:
+        if message.chat.type == 'private':
+                chat_id = message.chat.id
+                user_privelegies = is_admin(chat_id)
+                if user_privelegies == -1:
+                    return
+                file_id = None
+                chat_id = message.chat.id
+                content_type = 1
+                question_id = user_status[f'{chat_id}_id_thema']
+                if buffer[chat_id].status == 'wait_user_create_question':
+                    for photo in message.photo:
+                        file_id = photo.file_id
+                        break
+                    db_execute(f"INSERT INTO Files (file_id, contentType, owner_id) VALUES('{file_id}', {content_type}, {chat_id})")
+                    db_execute(f"INSERT INTO QuestionFiles (question_id, fileId) VALUES({question_id}, (SELECT id FROM Files WHERE file_id='{file_id}'))")
+    except Exception as e:
+        print(repr(e))
         
 
 
 if __name__ == '__main__':
     init_keyboards()
     try:
-        bot.polling(none_stop=True)
+        bot.polling(none_stop=True,timeout=30)
     except Exception as e:
-        bot.polling(none_stop=True)
+        time.sleep(30)

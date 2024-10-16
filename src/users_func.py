@@ -29,7 +29,7 @@ def check_admin_key(message):
         if message.text == admin_key:
             send_message(message.chat.id, 'Валидный ключ.\nДалее нам нужно записать информацию о тебе.\nКак тебя зовут ?')
             db_execute(f"INSERT INTO Users (name, tg_id, is_admin) VALUES ('NONE','{message.chat.id}', 1)")
-            user_status[message.chat.id] = 'wait_admin_name_insert'
+            buffer[message.chat.id].status = 'wait_admin_name_insert'
         else:
             bot.send_message(message.chat.id, 'Не валидный ключ. Напишите /start и попробуйте еще раз')
     except Exception as e:

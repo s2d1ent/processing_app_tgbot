@@ -1,6 +1,5 @@
 from config import *
-from users_func import is_admin
-user_keyboard_buf = {}
+from functions import is_admin
 # user
 user_std_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
 user_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,one_time_keyboard=False)
@@ -17,10 +16,10 @@ admin_mailling_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True,one_tim
 def start_keyboard(chat_id):
     user_type = is_admin(chat_id)
     if user_type == 0:
-        user_keyboard_buf[chat_id] = 'user_std_keyboard'
+        buffer[chat_id].keyboard = 'user_std_keyboard'
         bot.send_message(chat_id,"Продолжаем работать",reply_markup=user_std_keyboard)
     elif user_type == 1:
-        user_keyboard_buf[chat_id] = 'admin_std_keyboard'
+        buffer[chat_id].keyboard  = 'admin_std_keyboard'
         bot.send_message(chat_id,"Продолжаем работать",reply_markup=admin_std_keyboard)
 
 def change_keyboard(message, chat_id):
@@ -28,107 +27,96 @@ def change_keyboard(message, chat_id):
         result = False
         user_privelegies = is_admin(chat_id)
         buf_value = None
-        if str(chat_id) not in str(user_keyboard_buf.keys()):
+        if str(chat_id) not in str(buffer.keys()):
             print('Not user key in distinct')
             return
-        buf_value = user_keyboard_buf[chat_id]
-# Режим создания заявки
-        if str(chat_id) in str(buffer.keys()):
+        buf_value = buffer[chat_id].keyboard 
+      
+        if message.text == 'Отменить':
             if buffer[chat_id].status == 'user_mode_create_question':
-                if message.text == 'Отменить':
-                    if buf_value == 'user_write_question':
-                        bot.send_message(chat_id,text,reply_markup=user_std_keyboard)
-                        user_keyboard_buf[chat_id] = 'user_keyboard'
-                        result = True
-                return True
-            if buffer[chat_id].status == 'user_mode_create_question_attachment':
-                if user_keyboard_buf[chat_id] == 'user_write_question':
-                    bot.send_message(chat_id,text,reply_markup=user_write_atachment)
-                    user_keyboard_buf[chat_id] = 'user_write_atachment'
+                if buf_value == 'user_write_question':
+                    buffer[chat_id].status = ''
+                    bot.send_message(chat_id,'Создание заявки отменено!',reply_markup=user_keyboard)
+                    buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
-                return True
-        if message.text == 'Назад':
+        if message.text == 'Создать заявку' and buffer[chat_id].status == 'user_mode_create_question':
+            if user_privelegies  == 0:
+                bot.send_message(chat_id,"Создать заявку!",reply_markup=user_write_question)
+                buffer[chat_id].keyboard  = 'user_write_question'
+                result = True
+
+        elif message.text == 'Назад':
             text = "Назад!"
             if user_privelegies  == 0:
                 if buf_value == 'user_std_keyboard':
                     bot.send_message(chat_id,text,reply_markup=user_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_std_keyboard'
+                    buffer[chat_id].keyboard  = 'user_std_keyboard'
                     result = True
                 if buf_value == 'user_keyboard':
                     bot.send_message(chat_id,text,reply_markup=user_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_std_keyboard'
+                    buffer[chat_id].keyboard  = 'user_std_keyboard'
                     result = True
                 if buf_value == 'user_config_keyboard':
                     bot.send_message(chat_id,text,reply_markup=user_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_std_keyboard'
+                    buffer[chat_id].keyboard  = 'user_std_keyboard'
                     result = True
             elif user_privelegies == 1:
                 if buf_value == 'admin_std_keyboard':
                     bot.send_message(chat_id,text,reply_markup=admin_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_std_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_std_keyboard'
                     result = True
                 if buf_value == 'admin_keyboard':
                     bot.send_message(chat_id,text,reply_markup=admin_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_std_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_std_keyboard'
                     result = True
                 if buf_value == 'admin_config_keyboard':
                     bot.send_message(chat_id,text,reply_markup=admin_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_std_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_std_keyboard'
                     result = True
                 if buf_value == 'admin_mailling_keyboard':
                     bot.send_message(chat_id,text,reply_markup=admin_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_std_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_std_keyboard'
                     result = True
                 if buf_value == 'user_write_question':
                     bot.send_message(chat_id,text,reply_markup=admin_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_keyboard'
+                    buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
                 if buf_value == 'user_write_atachment':
                     bot.send_message(chat_id,text,reply_markup=admin_std_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_write_question'
+                    buffer[chat_id].keyboard  = 'user_write_question'
                     result = True
         
         elif message.text == 'Заявки':
             if user_privelegies  == 0:
                 if buf_value == 'user_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=user_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_keyboard'
+                    buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
             elif user_privelegies == 1:
                 if buf_value == 'admin_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=admin_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_keyboard'
                     result = True
-
-        elif message.text == 'Создать заявку':
-            if user_privelegies  == 0:
-                text = "Вы перешли в режим создания заявок.\n"
-                text += "Все что вы будете писать будет записано в поле комментарий, поэтому для того чтобы написать тему запроса нужно нажать ***Изменить тему***\n"
-                text += "*Все файлы что будут отправлены в этом режиме будут считаться вложением к заявке.*\n"
-                bot.send_message(chat_id,"Создать заявку!",reply_markup=user_write_question)
-                user_keyboard_buf[chat_id] = 'user_write_question'
-                buffer[chat_id].status = 'user_mode_create_question'
-                result = True
-                bot.send_message(chat_id,text,parse_mode="Markdown")
+                
 
 
         elif message.text == 'Настройки':
             if user_privelegies  == 0:
                 if buf_value == 'user_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=user_config_keyboard)
-                    user_keyboard_buf[chat_id] = 'user_config_keyboard'
+                    buffer[chat_id].keyboard  = 'user_config_keyboard'
                     result = True
             elif user_privelegies == 1:
                 if buf_value == 'admin_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=admin_config_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_config_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_config_keyboard'
                     result = True
 
         elif message.text == 'Рассылка':
             if user_privelegies == 1:
                 if buf_value == 'admin_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=admin_mailling_keyboard)
-                    user_keyboard_buf[chat_id] = 'admin_mailling_keyboard'
+                    buffer[chat_id].keyboard  = 'admin_mailling_keyboard'
                     result = True
 
         return result
@@ -176,7 +164,7 @@ def init_keyboards():
     admin_keyboard.add(admin_btn1, admin_btn2, admin_btn3)
 
     user_btn1 = types.KeyboardButton("Создать заявку")
-    user_btn2 = types.KeyboardButton("Проверить статус открытых заявок")
+    user_btn2 = types.KeyboardButton("Открытые заявки")
     user_btn3 = types.KeyboardButton("Отменить заявку")
     user_btn4 = types.KeyboardButton("Назад")
     user_btn5 = types.KeyboardButton("Дописать заявку")
@@ -186,7 +174,7 @@ def init_keyboards():
     uwq_btn2 = types.KeyboardButton("Изменить тему")
     uwq_btn3 = types.KeyboardButton("Изменить комменатрий")
     uwq_btn4 = types.KeyboardButton("Вложения")
-    uwq_btn5 = types.KeyboardButton("Отмена")
+    uwq_btn5 = types.KeyboardButton("Отменить")
     user_write_question.add(uwq_btn1, uwq_btn2, uwq_btn3, uwq_btn4, uwq_btn5)
 # Вложения  
     uwa_btn1 = types.KeyboardButton("Просмотр вложений")

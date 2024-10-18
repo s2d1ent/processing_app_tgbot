@@ -1,5 +1,5 @@
 from config import *
-from users_func import *
+from functions import *
 from db_functions import *
 
 def inline_handler_admin(call, chat_id):

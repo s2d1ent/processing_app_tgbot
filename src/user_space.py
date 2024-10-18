@@ -1,16 +1,27 @@
 from config import *
-from users_func import *
-from keyboard import change_keyboard
+from functions import *
+from keyboards import change_keyboard
+from datetime import datetime
 
 def inline_handler_user(call, chat_id):
     if call.message:
 # Отмена заявки(Пользователь)
         if f"{call.message.chat.id}_cancel_id:" in call.data:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="какая конкретно заявка тебя интересует ?")
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Какая конкретно заявка тебя интересует ?")
             id = str(call.data).replace(f"{call.message.chat.id}_cancel_id:",'')
             db_execute(f"UPDATE Questions SET status=2 WHERE id={id}")
             send_message(call.message.chat.id, f"***Ваша заявка №{id} отменена***")
             question_alert(id, 0)
+            return
+# Выбор темы
+        if f'{chat_id}_user_choice_thems:' in call.data:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Какая тема вашей заявки ?")
+            id = str(call.data).replace(f"{call.message.chat.id}_user_choice_thems:",'')
+            buffer[chat_id].question.thema = id
+            fetch = db_execute_fetch(f"SELECT name FROM QuestionThems WHERE id={id}")
+            if len(fetch) != 0:
+                for row in fetch:
+                    send_message(chat_id, f"Вы выбрали тему: ***{row[0]}***")
             return
         
 
@@ -24,47 +35,83 @@ def message_handler_user(message, chat_id):
                 buffer[chat_id].question.thema = message.text
                 send_message(chat_id, f"Вы изменили тему заявки на: {message.text}")
                 return
-            if buffer[chat_id].status == 'user_mode_create_question_comment':
+            elif buffer[chat_id].status == 'user_mode_create_question_comment':
                 buffer[chat_id].status = 'user_mode_create_question'
                 send_message(chat_id, f"ВРЕМЕННО НЕ РАБОТАЕТ")
                 return
-            if buffer[chat_id].status == 'user_mode_create_question':
-
+            elif buffer[chat_id].status == 'user_mode_create_question':
                 if message.text == "Изменить тему":
-                    buffer[chat_id].status = 'user_mode_create_question_thema'
-                    send_message(chat_id, f"Введите тему")
+                    fetch = db_execute_fetch("SELECT id, name FROM QuestionThems")
+                    text = "Какая тема вашей заявки ?"
+                    if len(fetch) != 0:
+                        markup = types.InlineKeyboardMarkup(row_width=2)
+                        for row in fetch:
+                            item = types.InlineKeyboardButton(f"{row[1]}", callback_data=f'{chat_id}_user_choice_thems:{row[0]}')
+                            markup.add(item)
+                        bot.send_message(chat_id,text,reply_markup=markup, parse_mode="Markdown")
+                    else :
+                        send_message(chat_id, 'Не удалось подгрузить темы! Выставлено автоматическая тема: Неизвестная проблема')
+                        buffer[chat_id].question.thema = 'Неизвестная проблема'
                     return
-                if message.text == "Изменить комменатрий":
-                    buffer[chat_id].status = 'user_mode_create_question_comment'
+                elif message.text == "Изменить комменатрий":
+                    #buffer[chat_id].status = 'user_mode_create_question_comment'
                     return
-                if message.text == "Вложения":
-                    buffer[chat_id].status = 'user_mode_create_question_attachment'
+                elif message.text == "Вложения":
+                    #buffer[chat_id].status = 'user_mode_create_question_attachment'
+                    #change_keyboard(message, chat_id)
+                    return
+                elif message.text == "Отменить":
                     change_keyboard(message, chat_id)
                     return
+                elif message.text == "Закончить":
+                    if buffer[chat_id].question.description == '' or buffer[chat_id].question.thema == -1:
+                        send_message(chat_id, f"Вы не можете закончить написание заявки если у Вас нет описания проблемы и выбраннолй темы")
+                        return
+                    else:
+                        date = datetime.now().strftime("%d.%m.%Y %H:%M")
+                        comm = str(buffer[chat_id].question.description)
+                        comm = comm.replace("'","`").replace("\"","`")
+                        thema = buffer[chat_id].question.thema
+                        db_execute(f"INSERT INTO Questions(date, creater, createrComment, thema) VALUES('{date}', '{chat_id}', '{comm}', {thema})")
 
-                buffer[chat_id].question.description += message.text
+                        fetch = db_execute_fetch(f"SELECT * FROM Questions WHERE date='{date}' and creater='{chat_id}' and thema={thema}")
+                        if len(fetch) == 0:
+                            send_message(chat_id, "Не удалось создать заявку")
+                        else:
+                            send_message(chat_id, "Заявка успешно создана")
+                            buffer[chat_id].question.thema = -1
+                            buffer[chat_id].question.description = ''
+                            buffer[chat_id].question.files.clear()
+                            #
+                            # todo уведомление администратора предприятия
+                            #
+                        return
+                buffer[chat_id].question.description += message.text + '\n'
+                print(buffer[chat_id].question.description)
                 return
-# Создание заявки, ввод описания                
-            #if buffer[chat_id].status == 'wait_user_create_question':
-            #    buffer[chat_id].status = ''
-            #    text = str(message.text).replace("'","`").replace('"',"`")
-            #    id = user_status[f'{chat_id}_id_thema']
-            #    thema = ''
-            #    db_execute(f"UPDATE Questions SET createrComment='{text}' WHERE id={id}")
-            #    fetch = db_execute_fetch(f"SELECT thema, (SELECT emoji from Status WHERE id=status) FROM Questions WHERE id={id}")
-            #    for row in fetch:
-            #        thema = row[0]
-            #    send_message(chat_id, f"*Заявка №{id}*\n*Тема:* {thema}\n*Описание:*\n{text}")
-            #    send_message(chat_id, "***Заявка успешно создана***. По закрытию Вашей заявки я пришлю уведомление")
-            #    admins_alert(id) 
-            #    return
-# Интерфейс
-        #if message.text == "Создать заявку":
-        #    send_message(chat_id, "Тема заявки")
-        #    buffer[chat_id].status = 'wait_user_create_question_thema'
-        if message.text == "Отменить заявку":
+        if message.text == 'Создать заявку':
+            buffer[chat_id].status = 'user_mode_create_question'
+            text = "Вы перешли в режим создания заявок.\n"
+            text += "Все что вы будете писать будет записано в поле комментарий, поэтому для того чтобы написать тему запроса нужно нажать ***Изменить тему***\n"
+            text += "*Все файлы что будут отправлены в этом режиме будут считаться вложением к заявке.*\n"
+            bot.send_message(chat_id,text,parse_mode="Markdown")
+            
+            text = f"Какая тема вашей заявки ?"
+            fetch = db_execute_fetch("SELECT id, name FROM QuestionThems")
+            if len(fetch) != 0:
+                markup = types.InlineKeyboardMarkup(row_width=2)
+                for row in fetch:
+                    item = types.InlineKeyboardButton(f"{row[1]}", callback_data=f'{chat_id}_user_choice_thems:{row[0]}')
+                    markup.add(item)
+                bot.send_message(chat_id,text,reply_markup=markup, parse_mode="Markdown")
+            else :
+                send_message(chat_id, 'Не удалось подгрузить темы! Выставлено автоматическая тема: Неизвестная проблема')
+                buffer[chat_id].question.thema = 'Неизвестная проблема'
+            change_keyboard(message, chat_id)
+                    
+        elif message.text == "Отменить заявку":
             cancel_question(chat_id)
-        if message.text == "Проверить статус открытых заявок":
+        if message.text == "Открытые заявки":
             fetch = db_execute_fetch(f"SELECT date, thema, (SELECT name from Users WHERE tg_id=receiver), (SELECT text FROM Status WHERE id=status), id, (SELECT emoji FROM Status WHERE id=status) FROM Questions WHERE creater={chat_id} and status=1 or status=3;")
             output=""
             if len(fetch) != 0:

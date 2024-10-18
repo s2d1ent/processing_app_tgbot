@@ -2,7 +2,7 @@ from datetime import datetime
 import time
 from db_functions import *
 from config import *
-from users_func import *
+from functions import *
 from user_space import inline_handler_user, message_handler_user
 from admin_space import inline_handler_admin, message_handler_admin
 from keyboards import init_keyboards, start_keyboard, change_keyboard

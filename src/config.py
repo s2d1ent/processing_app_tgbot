@@ -37,6 +37,6 @@ class UserBuffer:
 class QuestionBuffer:
     def __init__(self):
         self.id = 0
-        self.thema = ''
+        self.thema = -1
         self.description = ''
         self.files = []

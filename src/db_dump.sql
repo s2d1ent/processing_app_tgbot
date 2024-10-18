@@ -31,6 +31,21 @@ CREATE TABLE Companys (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name CHAR(100) NOT NULL
 );
+
+CREATE TRIGGER insert_mailling_group_after_company
+AFTER INSERT ON Companys
+FOR EACH ROW
+BEGIN
+    -- Первая запись с оригинальным значением
+    INSERT INTO MaillingGroups (name)
+    VALUES (NEW.name);
+
+    -- Вторая запись с добавлением дополнительного текста
+    INSERT INTO MaillingGroups (name)
+    VALUES (NEW.name || '_IT');
+END;
+
+
 INSERT INTO Companys VALUES(0, 'None');
 
 CREATE TABLE Departaments (
@@ -58,6 +73,15 @@ CREATE TABLE Users(
     FOREIGN KEY (company) REFERENCES Companys(id)
 );
 
+CREATE TABLE QuestionThems (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name CHAR(50) NOT NULL 
+);
+INSERT INTO QuestionThems VALUES(1, '1С');
+INSERT INTO QuestionThems VALUES(2, 'СЭД');
+INSERT INTO QuestionThems VALUES(3, 'Проблема с компьютером');
+INSERT INTO QuestionThems VALUES(4, 'Проблема с программой');
+
 CREATE TABLE Questions (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     date DATE NULL,                           
@@ -67,11 +91,12 @@ CREATE TABLE Questions (
     status INTEGER DEFAULT 0,                
     createrComment CHAR(500),
     receiverComment CHAR(500), 
-    thema CHAR(100) NULL,
+    thema INT NOT NULL,
     rating INTEGER DEFAULT 5,
     FOREIGN KEY (creater) REFERENCES Users(tg_id),
     FOREIGN KEY (receiver) REFERENCES Users(tg_id),
-    FOREIGN KEY (status) REFERENCES Status(id)
+    FOREIGN KEY (status) REFERENCES Status(id),
+    FOREIGN KEY (thema) REFERENCES QuestionThems(id)
 );
 
 CREATE TABLE ContentTypes (

@@ -28,9 +28,10 @@ def change_keyboard(message, chat_id):
         user_privelegies = is_admin(chat_id)
         buf_value = None
         if str(chat_id) not in str(buffer.keys()):
-            print('Not user key in distinct')
+            text = 'Бот был перезагружен, напишите `/start`'
+            bot.send_message(chat_id, text, parse_mode="Markdown")
             return
-        buf_value = buffer[chat_id].keyboard 
+        buf_value = buffer[chat_id].keyboard             
       
         if message.text == 'Отменить':
             if buffer[chat_id].status == 'user_mode_create_question':
@@ -39,10 +40,17 @@ def change_keyboard(message, chat_id):
                     bot.send_message(chat_id,'Создание заявки отменено!',reply_markup=user_keyboard)
                     buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
-        if message.text == 'Создать заявку' and buffer[chat_id].status == 'user_mode_create_question':
+        elif message.text == 'Создать заявку' and buffer[chat_id].status == 'user_mode_create_question':
             if user_privelegies  == 0:
                 bot.send_message(chat_id,"Создать заявку!",reply_markup=user_write_question)
                 buffer[chat_id].keyboard  = 'user_write_question'
+                result = True
+
+        elif message.text == 'Закончить':
+            if buf_value == 'user_write_question':
+                text = "Заявка успешно создана"
+                bot.send_message(chat_id,text,reply_markup=user_keyboard)
+                buffer[chat_id].keyboard  = 'user_keyboard'
                 result = True
 
         elif message.text == 'Назад':
@@ -59,6 +67,11 @@ def change_keyboard(message, chat_id):
                 if buf_value == 'user_config_keyboard':
                     bot.send_message(chat_id,text,reply_markup=user_std_keyboard)
                     buffer[chat_id].keyboard  = 'user_std_keyboard'
+                    result = True
+                if buf_value == 'user_write_question':
+                    text = "Заявка успешно создана"
+                    bot.send_message(chat_id,text,reply_markup=user_keyboard)
+                    buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
             elif user_privelegies == 1:
                 if buf_value == 'admin_std_keyboard':
@@ -97,19 +110,18 @@ def change_keyboard(message, chat_id):
                     bot.send_message(chat_id,"Заявки!",reply_markup=admin_keyboard)
                     buffer[chat_id].keyboard  = 'admin_keyboard'
                     result = True
-                
-
 
         elif message.text == 'Настройки':
             if user_privelegies  == 0:
                 if buf_value == 'user_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=user_config_keyboard)
                     buffer[chat_id].keyboard  = 'user_config_keyboard'
+                    buffer[chat_id].status  = 'settings_menu'
                     result = True
             elif user_privelegies == 1:
                 if buf_value == 'admin_std_keyboard':
                     bot.send_message(chat_id,"Заявки!",reply_markup=admin_config_keyboard)
-                    buffer[chat_id].keyboard  = 'admin_config_keyboard'
+                    buffer[chat_id].status  = 'settings_menu'
                     result = True
 
         elif message.text == 'Рассылка':
@@ -148,13 +160,15 @@ def init_keyboards():
     ucfg_btn1 = types.KeyboardButton("Сменить имя пользователя")
     ucfg_btn2 = types.KeyboardButton("Сменить предприятие")
     ucfg_btn3 = types.KeyboardButton("Назад")
-    user_config_keyboard.add(ucfg_btn1, ucfg_btn2, ucfg_btn3)
+    ucfg_btn4 = types.KeyboardButton("Обо мне")
+    user_config_keyboard.add(ucfg_btn1, ucfg_btn4, ucfg_btn2, ucfg_btn3)
 
     acfg_btn1 = types.KeyboardButton("Сменить имя пользователя")
     acfg_btn2 = types.KeyboardButton("Сменить предприятие")
-    acfg_btn2 = types.KeyboardButton("Управление БД")
-    acfg_btn3 = types.KeyboardButton("Назад")
-    admin_config_keyboard.add(acfg_btn1, acfg_btn2, acfg_btn3)
+    acfg_btn3 = types.KeyboardButton("Управление БД")
+    acfg_btn4 = types.KeyboardButton("Обо мне")
+    acfg_btn5 = types.KeyboardButton("Назад")
+    admin_config_keyboard.add(acfg_btn1, acfg_btn2, acfg_btn3, acfg_btn4, acfg_btn5)
     # Конец настройки
 
     # Заявки
@@ -165,10 +179,8 @@ def init_keyboards():
 
     user_btn1 = types.KeyboardButton("Создать заявку")
     user_btn2 = types.KeyboardButton("Открытые заявки")
-    user_btn3 = types.KeyboardButton("Отменить заявку")
     user_btn4 = types.KeyboardButton("Назад")
-    user_btn5 = types.KeyboardButton("Дописать заявку")
-    user_keyboard.add(user_btn1, user_btn5, user_btn3, user_btn2, user_btn4)
+    user_keyboard.add(user_btn1, user_btn2, user_btn4)
 # Режим создания заявки
     uwq_btn1 = types.KeyboardButton("Закончить")
     uwq_btn2 = types.KeyboardButton("Изменить тему")

@@ -1,5 +1,6 @@
 import telebot
 from telebot import types
+from telebot.types import InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument
 from datetime import datetime
 #db_name = 'DATABASE_NAME'
 #dmin_key = 'ADMIN_KEY'
@@ -28,10 +29,15 @@ emojis = {
 class UserBuffer:
     def __init__(self, chat_id):
         self.id = chat_id
+        self.name = str()
         self.question = QuestionBuffer()
         self.status = ''
         self.keyboard = ''
         self.variables = {}
+        self.is_admin = 0
+        self.company = 0
+        self.departament = 0
+        self.email = str()
 
 
 class QuestionBuffer:
@@ -40,3 +46,9 @@ class QuestionBuffer:
         self.thema = -1
         self.description = ''
         self.files = []
+
+class FileBuffer:
+    def __init__(self):
+        self.file_id = 0
+        self.contentType = 0
+        self.date = 0

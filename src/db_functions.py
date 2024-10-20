@@ -25,8 +25,11 @@ def db_close():
         print('db_close '+repr(e))
 
 def db_execute(command):
+    db_conn = None
+    cursor = None
     try:
-        db_start()
+        db_conn = sqlite3.connect(db_name)
+        cursor = db_conn.cursor()
         cursor.execute(command)
         db_conn.commit()
     except Exception as e:
@@ -34,7 +37,6 @@ def db_execute(command):
     finally:
         cursor.close()
         db_conn.close()
-        is_open = False
 
 def db_execute_fetch(command):
     db_conn = None

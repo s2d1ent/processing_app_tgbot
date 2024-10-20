@@ -20,6 +20,8 @@ COPY src/ .
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN python /app/db_configur.py
+RUN python /app/db_configur.py ./db_dump.sql
+RUN python /app/db_configur.py ./db_dump_triggers.sql
+RUN python /app/db_configur.py ./db_dump_data.sql
 
 CMD ["bash","-c","python3 /app/main.py"]

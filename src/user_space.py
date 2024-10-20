@@ -6,29 +6,41 @@ from datetime import datetime
 def inline_handler_user(call, chat_id):
     if call.message:
 # Отмена заявки(Пользователь)
-        if f"{call.message.chat.id}_cancel_id:" in call.data:
+        if f"cancel_id:" in call.data:
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Какая конкретно заявка тебя интересует ?")
-            id = str(call.data).replace(f"{call.message.chat.id}_cancel_id:",'')
+            id = str(call.data).replace(f"cancel_id:",'')
             db_execute(f"UPDATE Questions SET status=2 WHERE id={id}")
             send_message(call.message.chat.id, f"***Ваша заявка №{id} отменена***")
             question_alert(id, 0)
             return
 # Выбор темы
-        if f'{chat_id}_user_choice_thems:' in call.data:
+        if f'user_choice_thems:' in call.data:
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Какая тема вашей заявки ?")
-            id = str(call.data).replace(f"{call.message.chat.id}_user_choice_thems:",'')
+            id = str(call.data).replace(f"user_choice_thems:",'')
             buffer[chat_id].question.thema = id
             fetch = db_execute_fetch(f"SELECT name FROM QuestionThems WHERE id={id}")
             if len(fetch) != 0:
                 for row in fetch:
                     send_message(chat_id, f"Вы выбрали тему: ***{row[0]}***")
             return
-        
+# Удаление фото из вложений к заявке
+        if f'user_delete_photo:' in call.data:
+            id = int(str(call.data).replace(f"user_delete_photo:",''))
+            buffer[chat_id].question.files.remove(buffer[chat_id].question.files[id])
+            send_message(chat_id, 'Вложение было удалено!')
+# Отмена заявки через просмотр заявок
+        if f'user_check_question_cancel:' in call.data:
+            id = int(str(call.data).replace(f"user_check_question_cancel:",''))
+            db_execute(f"UPDATE Questions SET status=2 WHERE id={id}")
+            send_message(call.message.chat.id, f"***Ваша заявка №{id} отменена***")
+            question_alert(id, 0)
+            return            
 
 def message_handler_user(message, chat_id):
     try:
-# Обработка запросов
-        if str(chat_id) in str(buffer.keys()):
+        if str(chat_id) not in str(buffer.keys()):
+            return
+        else:
 # Создание заявки d ht;bvt cjplfybz pfzdrb
             if buffer[chat_id].status == 'user_mode_create_question_thema':
                 buffer[chat_id].status = 'user_mode_create_question'
@@ -46,7 +58,7 @@ def message_handler_user(message, chat_id):
                     if len(fetch) != 0:
                         markup = types.InlineKeyboardMarkup(row_width=2)
                         for row in fetch:
-                            item = types.InlineKeyboardButton(f"{row[1]}", callback_data=f'{chat_id}_user_choice_thems:{row[0]}')
+                            item = types.InlineKeyboardButton(f"{row[1]}", callback_data=f'user_choice_thems:{row[0]}')
                             markup.add(item)
                         bot.send_message(chat_id,text,reply_markup=markup, parse_mode="Markdown")
                     else :
@@ -57,14 +69,37 @@ def message_handler_user(message, chat_id):
                     #buffer[chat_id].status = 'user_mode_create_question_comment'
                     return
                 elif message.text == "Вложения":
-                    #buffer[chat_id].status = 'user_mode_create_question_attachment'
-                    #change_keyboard(message, chat_id)
+                    if len(buffer[chat_id].question.files) == 0:
+                        send_message(chat_id, 'Вложения отсутствуют')
+                        return
+                    for file in buffer[chat_id].question.files:
+                        markup = types.InlineKeyboardMarkup(row_width=2)
+                        arr_index = 0
+                        content_type = file.contentType
+                        for arr_index in range(0,len(buffer[chat_id].question.files)):
+                            if buffer[chat_id].question.files[arr_index].file_id == file.file_id:
+                                break
+                        
+                        item = types.InlineKeyboardButton(f"Удалить", callback_data=f'user_delete_photo:{arr_index}')
+                        markup.add(item)
+                        if content_type == 1:
+                            bot.send_photo(chat_id, file.file_id, reply_markup=markup)       
+                        elif content_type == 2:
+                            bot.send_voice(chat_id, file.file_id, reply_markup=markup)
+                        elif content_type == 3:
+                            bot.send_document(chat_id, file.file_id, reply_markup=markup)
+                        elif content_type == 4:
+                            bot.send_audio(chat_id, file.file_id, reply_markup=markup)
+                        elif content_type == 5:
+                            bot.send_video(chat_id, file.file_id, reply_markup=markup)
+                        elif content_type == 6:
+                            bot.send_video_note(chat_id, file.file_id, reply_markup=markup)
                     return
                 elif message.text == "Отменить":
                     change_keyboard(message, chat_id)
                     return
                 elif message.text == "Закончить":
-                    if buffer[chat_id].question.description == '' or buffer[chat_id].question.thema == -1:
+                    if buffer[chat_id].question.thema == -1 or (buffer[chat_id].question.description == '' and len(buffer[chat_id].question.files) == 0):
                         send_message(chat_id, f"Вы не можете закончить написание заявки если у Вас нет описания проблемы и выбраннолй темы")
                         return
                     else:
@@ -72,22 +107,29 @@ def message_handler_user(message, chat_id):
                         comm = str(buffer[chat_id].question.description)
                         comm = comm.replace("'","`").replace("\"","`")
                         thema = buffer[chat_id].question.thema
-                        db_execute(f"INSERT INTO Questions(date, creater, createrComment, thema) VALUES('{date}', '{chat_id}', '{comm}', {thema})")
+                        question_id = -1
+                        db_execute(f"INSERT INTO Questions(date, creater, createrComment, thema, status) VALUES('{date}', '{chat_id}', '{comm}', {thema}, 1)")
 
-                        fetch = db_execute_fetch(f"SELECT * FROM Questions WHERE date='{date}' and creater='{chat_id}' and thema={thema}")
+                        fetch = db_execute_fetch(f"SELECT id FROM Questions WHERE date='{date}' and creater='{chat_id}' and thema={thema}")
                         if len(fetch) == 0:
                             send_message(chat_id, "Не удалось создать заявку")
+                            change_keyboard(message, chat_id)
                         else:
-                            send_message(chat_id, "Заявка успешно создана")
+                            for row in fetch:
+                                question_id = row[0]
+                            for file in buffer[chat_id].question.files:
+                                file_fetch = db_execute_fetch(f"SELECT id FROM Files WHERE file_id='{file.file_id}' and date='{file.date}'")
+                                for files in file_fetch:
+                                    db_execute(f"INSERT INTO QuestionFiles (question_id, fileId) VALUES({question_id}, '{files[0]}')")
+                            admins_alert(question_id)
                             buffer[chat_id].question.thema = -1
                             buffer[chat_id].question.description = ''
                             buffer[chat_id].question.files.clear()
-                            #
-                            # todo уведомление администратора предприятия
-                            #
+                            buffer[chat_id].status = ''
+                            change_keyboard(message, chat_id)
+                            
                         return
                 buffer[chat_id].question.description += message.text + '\n'
-                print(buffer[chat_id].question.description)
                 return
         if message.text == 'Создать заявку':
             buffer[chat_id].status = 'user_mode_create_question'
@@ -101,7 +143,7 @@ def message_handler_user(message, chat_id):
             if len(fetch) != 0:
                 markup = types.InlineKeyboardMarkup(row_width=2)
                 for row in fetch:
-                    item = types.InlineKeyboardButton(f"{row[1]}", callback_data=f'{chat_id}_user_choice_thems:{row[0]}')
+                    item = types.InlineKeyboardButton(f"{row[1]}", callback_data=f'user_choice_thems:{row[0]}')
                     markup.add(item)
                 bot.send_message(chat_id,text,reply_markup=markup, parse_mode="Markdown")
             else :
@@ -109,18 +151,23 @@ def message_handler_user(message, chat_id):
                 buffer[chat_id].question.thema = 'Неизвестная проблема'
             change_keyboard(message, chat_id)
                     
-        elif message.text == "Отменить заявку":
-            cancel_question(chat_id)
+        #elif message.text == "Отменить заявку":
+        #    cancel_question(chat_id)
         if message.text == "Открытые заявки":
             fetch = db_execute_fetch(f"SELECT date, thema, (SELECT name from Users WHERE tg_id=receiver), (SELECT text FROM Status WHERE id=status), id, (SELECT emoji FROM Status WHERE id=status) FROM Questions WHERE creater={chat_id} and status=1 or status=3;")
             output=""
+            emoji = str()
             if len(fetch) != 0:
                 for row in fetch:
+                    emoji = f"{chr(int(str(row[5]).replace('U+', '0x'), 16))}"
+                    markup = types.InlineKeyboardMarkup(row_width=2)
                     if row[2]== None:
-                        output += f"*Заявка №{row[4]}*\n*Тема:* {row[1]}\n*Статус:* {row[3]}\n\n"
+                        output = f"{emoji}{emoji}{emoji}\n*Заявка №{row[4]}*\n*Тема:* {row[1]}\n*Статус:* {row[3]}\n\n"
                     else:
-                        output += f"*Заявка №{row[4]}*\n*Тема:* {row[1]}\n*Исполнитель:* {row[2]}\n*Статус:* {row[3]}\n\n"
-                send_message(chat_id, output)
+                        output = f"{emoji}{emoji}{emoji}\n*Заявка №{row[4]}*\n*Тема:* {row[1]}\n*Исполнитель:* {row[2]}\n*Статус:* {row[3]}\n\n"
+                    item = types.InlineKeyboardButton(f"Отменить", callback_data=f'user_check_question_cancel:{row[4]}')
+                    markup.add(item)
+                bot.send_message(chat_id,output,reply_markup=markup, parse_mode="Markdown")
             else:
                 send_message(chat_id, "Нет открытых заявок")
     except Exception as e:

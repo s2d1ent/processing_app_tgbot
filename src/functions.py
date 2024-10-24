@@ -55,13 +55,16 @@ def user_registering(chat_id):
     buffer[chat_id].status == ''
     db_execute(f"INSERT INTO Users(name, tg_id, company, departament, is_admin, email) VALUES('{buffer[chat_id].name}', '{chat_id}', {buffer[chat_id].company}, {buffer[chat_id].departament}, {buffer[chat_id].is_admin}, '{buffer[chat_id].email}')")
     fetch = db_execute_fetch(f"SELECT * FROM Users WHERE tg_id='{chat_id}'")
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    item = types.InlineKeyboardButton(f"/start", callback_data=f'start_after_reg')
+    markup.add(item)
     if fetch == None:
         send_message(chat_id, "Пользователь не был зарегистрирован")
     else:
         if len(fetch) == 0:
             send_message(chat_id, "Пользователь не был зарегистрирован")
         else:
-            send_message(chat_id, "Пользователь был успешно зарегистрирован! Для продолжение введите `/start`")
+            bot.send_message(chat_id,"Нажмите на `/start` для продолжения",reply_markup=markup, parse_mode="Markdown")
 # Этап регистрации
 def take_departament(message):
     try:
@@ -123,7 +126,7 @@ def cancel_question(chat_id):
         for row in fetch:
             item = types.InlineKeyboardButton(f"Заявка №{row[0]} - {row[1]}", callback_data=f'cancel_id:{row[0]}')
             markup.add(item)
-        bot.send_message(chat_id,"Какую открытую заявку вы хотите отменить ?",reply_markup=markup)
+        bot.send_message(chat_id,"Какую открытую заявку Вы хотите отменить ?",reply_markup=markup)
     else:
         send_message(chat_id, f"Нет открытых заявок")
 
@@ -167,7 +170,7 @@ def question_alert(question_id, alert):
 def questions_my_view(chat_id):
     fetch = db_execute_fetch(f"SELECT id, date, thema, createrComment, (SELECT name from Users WHERE tg_id=creater), (SELECT emoji FROM Status WHERE id=status) FROM Questions WHERE status=3 AND receiver={chat_id}")
     if len(fetch) != 0:
-        send_message(chat_id, "Список принятых тобой заявок")
+        send_message(chat_id, "Список принятых Вами заявок")
         for row in fetch:
             emoji = f"{chr(int(str(row[5]).replace('U+', '0x'), 16))}"
             markup = types.InlineKeyboardMarkup(row_width=2)

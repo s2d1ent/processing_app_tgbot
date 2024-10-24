@@ -5,3 +5,4 @@ src/mponn_it_bot.code-workspace
 *.pyc
 __pycache__/
 src/update
+PID

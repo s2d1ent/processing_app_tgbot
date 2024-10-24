@@ -40,10 +40,10 @@ def start_keyboard(chat_id):
     user_type = is_admin(chat_id)
     if user_type == 0:
         buffer[chat_id].keyboard = 'user_std_keyboard'
-        bot.send_message(chat_id,"Продолжаем работать",reply_markup=user_std_keyboard)
+        bot.send_message(chat_id,"Обновление клавиатуры",reply_markup=user_std_keyboard)
     elif user_type == 1:
         buffer[chat_id].keyboard  = 'admin_std_keyboard'
-        bot.send_message(chat_id,"Продолжаем работать",reply_markup=admin_std_keyboard)
+        bot.send_message(chat_id,"Обновление клавиатуры",reply_markup=admin_std_keyboard)
 
 def change_keyboard(message, chat_id):
     try:
@@ -63,11 +63,6 @@ def change_keyboard(message, chat_id):
                     bot.send_message(chat_id,'Создание заявки отменено!',reply_markup=user_keyboard)
                     buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
-        elif message.text == 'Создать заявку' and buffer[chat_id].status == 'user_mode_create_question':
-            if user_privelegies  == 0:
-                bot.send_message(chat_id,"Создать заявку!",reply_markup=user_write_question)
-                buffer[chat_id].keyboard  = 'user_write_question'
-                result = True
 
         elif message.text == 'Закончить':
             if buf_value == 'user_write_question':
@@ -125,7 +120,8 @@ def change_keyboard(message, chat_id):
         elif message.text == 'Заявки':
             if user_privelegies  == 0:
                 if buf_value == 'user_std_keyboard':
-                    bot.send_message(chat_id,"Заявки!",reply_markup=user_keyboard)
+                    bot.send_message(chat_id,"***Вы попали в меню для работы с заявками.***\nДля того чтобы создать заявку нажмите на кнопку ***'Создать заявку'***",
+                                     reply_markup=user_keyboard, parse_mode="Markdown")
                     buffer[chat_id].keyboard  = 'user_keyboard'
                     result = True
             elif user_privelegies == 1:
@@ -218,4 +214,33 @@ def init_keyboards():
     uwa_btn4 = types.KeyboardButton("Назад")
     user_write_atachment.add(uwa_btn1, uwa_btn2, uwa_btn3, uwa_btn4)
     # Конец заявки
-    print("Keybord initialized")
+    
+
+def init_keyboards_buffer():
+    for user in buffer.values():
+        text = 'Бот был перезагружен!'
+        isAdmin = is_admin(user.id)
+        markup = user_std_keyboard
+        keyboard = user.keyboard
+        
+        if isAdmin == 0:
+            if keyboard == "user_std_keyboard":
+                markup = user_std_keyboard
+            if keyboard == "user_keyboard":
+                markup = user_keyboard
+            if keyboard == "user_config_keyboard":
+                markup = user_config_keyboard
+            if keyboard == "user_write_question":
+                markup = user_write_question
+            if keyboard == "user_write_atachment":
+                markup = user_write_atachment
+        elif isAdmin == 1:
+            if keyboard == "admin_std_keyboard":
+                markup = admin_std_keyboard
+            if keyboard == "admin_keyboard":
+                markup = admin_keyboard
+            if keyboard == "admin_config_keyboard":
+                markup = admin_config_keyboard
+            if keyboard == "admin_mailling_keyboard":
+                markup = admin_mailling_keyboard
+        bot.send_message(user.id, text,reply_markup=markup, parse_mode="Markdown")

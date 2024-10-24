@@ -20,15 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # 
-
-from datetime import datetime
 import time
+import os
+import buffering
+import threading
+from datetime import datetime
 from db_functions import *
-from config import *
+from config import bot, buffer
 from functions import *
 from user_space import inline_handler_user, message_handler_user
 from admin_space import inline_handler_admin, message_handler_admin
-from keyboards import init_keyboards, start_keyboard, change_keyboard
+from keyboards import init_keyboards, start_keyboard, change_keyboard, init_keyboards_buffer
+
 
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
@@ -37,22 +40,15 @@ def cmd_start(message):
         user_exist = is_registered(message.chat.id)
         if user_exist == True:
             if str(chat_id) not in str(buffer.keys()):
-                buffer[chat_id] = UserBuffer(chat_id)
+                buffer[chat_id] = buffering.UserBuffer(chat_id)
                 print("User has not buffered data")
             start_keyboard(chat_id)
-            send_message(chat_id, "При любом странном поведени бота пропишите: `/start`")
         else:
             if str(chat_id) not in str(buffer.keys()):
-                buffer[chat_id] = UserBuffer(chat_id)
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            item1 = types.InlineKeyboardButton("Администратор", callback_data='whois_cmd_admin')
-            item2 = types.InlineKeyboardButton("Пользователь", callback_data='whois_cmd_user')
-            markup.add(item1, item2)
-            bot.send_message(chat_id, 
-            f'Привет, {message.from_user.first_name}!. Для начала давай разберемся кто ты.\n'+
-            '`Администратор` - тот кто будет обрабатывать поступающие заявки\n'+
-            '`Пользователь` - тот кто будет отправлять заявки\n',
-            reply_markup=markup, parse_mode="Markdown")
+                buffer[chat_id] = buffering.UserBuffer(chat_id)
+            bot.send_message(chat_id, 'Укажите ФИО полность. Пример: Иванов Иван Иванович', parse_mode="Markdown")
+            buffer[chat_id].status = 'user_registering'               
+            bot.register_next_step_handler(message, user_reg)
     except Exception as e:
         print(repr(e))
 
@@ -67,22 +63,12 @@ def inline_handler(call):
             send_message(chat_id, "Вам не доступна данная функция")
             return
         if call.message:
-# Проверка пользователя при регистрации(админ)
-            if call.data == 'whois_cmd_admin':
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Привет, {call.message.from_user.first_name}!. Для начала давай разберемся кто ты.\n'+
-            '`Администратор` - тот кто будет обрабатывать поступающие заявки\n'+
-            '`Пользователь` - тот кто будет отправлять заявки\n')
-                buffer[chat_id].status = 'admin_registering' 
-                bot.send_message(call.message.chat.id, 'Введите ключ администратора', parse_mode="Markdown")
-                bot.register_next_step_handler(call.message, check_admin_key)
-# Проверка пользователя при регистрации(пользователь)
-            if call.data == 'whois_cmd_user':
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Привет, {call.message.from_user.first_name}!. Для начала давай разберемся кто ты.\n'+
-            '`Администратор` - тот кто будет обрабатывать поступающие заявки\n'+
-            '`Пользователь` - тот кто будет отправлять заявки\n')
-                bot.send_message(call.message.chat.id, 'Как Вас зовут ? Напишите ФИО полностью', parse_mode="Markdown")
-                buffer[chat_id].status = 'user_registering'               
-                bot.register_next_step_handler(call.message, user_reg)
+            if call.data == 'start_after_reg':
+                buffer[chat_id].status = ''
+                bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text="Выберите Вашу компанию!")
+                start_keyboard(chat_id)
+                send_message(chat_id, "***БОТ НАХОДИТСЯ НА СТАДИИ РАЗРАБОТКИ.***\nПри любом странном поведени бота пропишите: `/start`")
+                return
             if buffer[chat_id].status == 'user_registering' or buffer[chat_id].status == 'admin_registering':
                 if "registering_take_company:" in call.data:
                     id = str(call.data).replace('registering_take_company:','')
@@ -140,7 +126,7 @@ def media_handler(message):
             if user_privelegies == -1:
                 return
             
-            file = FileBuffer()
+            file = buffering.FileBuffer()
             file.date = datetime.now().strftime("%d.%m.%Y %H:%M")
             if message.photo:
                 file.contentType = 1
@@ -166,16 +152,30 @@ def media_handler(message):
                 buffer[chat_id].question.files.append(file)
                 db_execute(f"INSERT INTO Files (file_id, contentType, owner_id, date) VALUES('{file.file_id}', {file.contentType}, {chat_id}, '{file.date}')")
 
-                
-
                     
     except Exception as e:
         print(repr(e))
 
-
+#TODO
 if __name__ == '__main__':
-    init_keyboards()
     try:
+# Сохранение PID процесса
+        with open('./PID', 'w') as file:
+            file.write(f'{os.getpid()}\n')
+        print("Initialize: PID write")
+        buffering.get_buffer()
+        print("Initialize: copy buffer done")
+# Инициализация клавиатур
+        init_keyboards()
+        print("Initialize: Keybord initialized")
+# Инициализация клавиатуры из буффера
+        if ~buffering.isCleanBuffer:
+            init_keyboards_buffer()
+            print("Initialize: user old keyboard write")
+# Запуск буферизации
+        threading.Thread(target=buffering.run).start()
+        print("Initialize: buffering start")
+# Запуск бота
         bot.polling(none_stop=True,timeout=30)
     except Exception as e:
         time.sleep(30)

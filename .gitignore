@@ -2,6 +2,7 @@ src/test_data.sql
 src/mponn_it_test
 src/mponn_it
 src/mponn_it_bot.code-workspace
+src/buffer.json
 *.pyc
 __pycache__/
 src/update
